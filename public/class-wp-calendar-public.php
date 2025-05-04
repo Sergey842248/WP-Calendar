@@ -93,6 +93,17 @@ class WP_Calendar_Public {
     }
 
     /**
+     * Register shortcodes
+     */
+    public function register_shortcodes() {
+        add_shortcode('wp_calendar', array($this, 'calendar_shortcode'));
+        add_shortcode('wp_calendar_booking', array($this, 'booking_shortcode'));
+        add_shortcode('wp_calendar_account', array($this, 'account_shortcode'));
+        add_shortcode('wp_calendar_login', array($this, 'login_shortcode'));
+        add_shortcode('wp_calendar_register', array($this, 'register_shortcode'));
+    }
+
+    /**
      * Enqueue scripts and styles for shortcodes
      */
     public function enqueue_shortcode_assets() {

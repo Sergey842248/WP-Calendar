@@ -62,7 +62,8 @@ register_deactivation_hook(__FILE__, 'deactivate_wp_calendar');
  * The core plugin class that is used to define internationalization,
  * admin-specific hooks, and public-facing site hooks.
  */
-require WP_CALENDAR_PLUGIN_DIR . 'includes/class-wp-calendar.php';
+
+
 
 /**
  * Begins execution of the plugin.
