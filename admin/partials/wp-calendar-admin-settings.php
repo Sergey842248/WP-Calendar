@@ -25,7 +25,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
         <?php
         if ($active_tab == 'general') {
             settings_fields('wp_calendar_settings');
-            do_settings_sections('wp_calendar_general_settings');
+            do_settings_sections('wp-calendar-settings');
             ?>
             <table class="form-table">
                 <tr valign="top">
@@ -87,7 +87,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
         <?php
         } elseif ($active_tab == 'business_hours') {
             settings_fields('wp_calendar_settings');
-            do_settings_sections('wp_calendar_business_hours_settings');
+            do_settings_sections('wp-calendar-settings');
             ?>
             <table class="form-table">
                 <tr valign="top">
@@ -126,7 +126,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
         <?php
         } elseif ($active_tab == 'notifications') {
             settings_fields('wp_calendar_settings');
-            do_settings_sections('wp_calendar_notifications_settings');
+            do_settings_sections('wp-calendar-settings');
             ?>
             <table class="form-table">
                 <tr valign="top">
@@ -162,7 +162,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
         <?php
         } elseif ($active_tab == 'google_calendar') {
             settings_fields('wp_calendar_settings');
-            do_settings_sections('wp_calendar_google_calendar_settings');
+            do_settings_sections('wp-calendar-settings');
             ?>
             <table class="form-table">
                 <tr valign="top">
