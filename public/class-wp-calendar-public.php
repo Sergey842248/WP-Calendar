@@ -44,22 +44,31 @@ class WP_Calendar_Public {
      * Register the stylesheets for the public-facing side of the site.
      */
     public function enqueue_styles() {
+        // Register styles
         wp_register_style('jquery-ui', WP_CALENDAR_PLUGIN_URL . 'public/css/jquery-ui.min.css', array(), $this->version);
         wp_register_style('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'public/css/fullcalendar.min.css', array(), $this->version);
         wp_register_style($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'public/css/wp-calendar-public.css', array(), $this->version);
+        
+        // Enqueue styles for all pages where shortcodes might be used
+        wp_enqueue_style('jquery-ui');
+        wp_enqueue_style($this->plugin_name);
     }
 
     /**
      * Register the JavaScript for the public-facing side of the site.
      */
     public function enqueue_scripts() {
-        // Register scripts first
-        wp_register_script('jquery-ui-core');
-        wp_register_script('jquery-ui-datepicker');
+        // Register scripts
         wp_register_script('moment', WP_CALENDAR_PLUGIN_URL . 'public/js/moment.min.js', array('jquery'), $this->version);
         wp_register_script('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'public/js/fullcalendar.min.js', array('jquery', 'moment'), $this->version);
+        
+        // Enqueue jQuery UI datepicker for all pages
+        wp_enqueue_script('jquery-ui-datepicker');
+        
+        // Register and enqueue the main plugin script
         wp_register_script($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'public/js/wp-calendar-public.js', array('jquery', 'jquery-ui-datepicker'), $this->version, true);
-    
+        wp_enqueue_script($this->plugin_name);
+
         // Localize the script with data
         wp_localize_script($this->plugin_name, 'wp_calendar_public', array(
             'ajax_url' => admin_url('admin-ajax.php'),

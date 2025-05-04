@@ -7,28 +7,25 @@
             initializeCalendar();
         }
 
-        // Initialize datepickers
-        jQuery(document).ready(function($) {
-            // Initialize datepicker
-            if ($('.wp-calendar-datepicker').length) {
-                $('.wp-calendar-datepicker').datepicker({
-                    dateFormat: 'yy-mm-dd',
-                    minDate: 0,
-                    changeMonth: true,
-                    changeYear: true,
-                    beforeShowDay: function(date) {
-                        // Add logic to disable blocked dates if needed
-                        return [true, ''];
-                    },
-                    onSelect: function(dateText) {
-                        // When a date is selected, get available times
-                        getAvailableTimes(dateText);
-                    }
-                });
-                
-                console.log('Datepicker initialized');
-            }
-        });
+        // Initialize datepicker - FIXED VERSION
+        if ($('.wp-calendar-datepicker').length) {
+            $('.wp-calendar-datepicker').datepicker({
+                dateFormat: 'yy-mm-dd',
+                minDate: 0,
+                changeMonth: true,
+                changeYear: true,
+                beforeShowDay: function(date) {
+                    // Add logic to disable blocked dates if needed
+                    return [true, ''];
+                },
+                onSelect: function(dateText) {
+                    // When a date is selected, get available times
+                    getAvailableTimes(dateText);
+                }
+            });
+            
+            console.log('Datepicker initialized');
+        }
 
         // Book appointment form submission
         $('#wp-calendar-booking-form').on('submit', function(e) {
