@@ -53,10 +53,13 @@ class WP_Calendar_Public {
      * Register the JavaScript for the public-facing side of the site.
      */
     public function enqueue_scripts() {
+        // Register scripts first
+        wp_register_script('jquery-ui-core');
+        wp_register_script('jquery-ui-datepicker');
         wp_register_script('moment', WP_CALENDAR_PLUGIN_URL . 'public/js/moment.min.js', array('jquery'), $this->version);
         wp_register_script('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'public/js/fullcalendar.min.js', array('jquery', 'moment'), $this->version);
         wp_register_script($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'public/js/wp-calendar-public.js', array('jquery', 'jquery-ui-datepicker'), $this->version, true);
-
+    
         // Localize the script with data
         wp_localize_script($this->plugin_name, 'wp_calendar_public', array(
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -81,23 +84,18 @@ class WP_Calendar_Public {
     }
 
     /**
-     * Register shortcodes
+     * Enqueue scripts and styles for shortcodes
      */
-    public function register_shortcodes() {
-        // Main calendar shortcode
-        add_shortcode('wp_calendar', array($this, 'calendar_shortcode'));
+    public function enqueue_shortcode_assets() {
+        // Enqueue jQuery UI styles
+        wp_enqueue_style('jquery-ui');
+        wp_enqueue_style($this->plugin_name);
         
-        // Booking form shortcode
-        add_shortcode('wp_calendar_booking', array($this, 'booking_shortcode'));
-        
-        // Login form shortcode
-        add_shortcode('wp_calendar_login', array($this, 'login_shortcode'));
-        
-        // Register form shortcode
-        add_shortcode('wp_calendar_register', array($this, 'register_shortcode'));
-        
-        // Account page shortcode
-        add_shortcode('wp_calendar_account', array($this, 'account_shortcode'));
+        // Enqueue scripts
+        wp_enqueue_script('jquery');
+        wp_enqueue_script('jquery-ui-core');
+        wp_enqueue_script('jquery-ui-datepicker');
+        wp_enqueue_script($this->plugin_name);
     }
 
     /**
@@ -105,14 +103,10 @@ class WP_Calendar_Public {
      */
     public function calendar_shortcode($atts) {
         // Enqueue necessary scripts and styles
-        wp_enqueue_script('jquery-ui-datepicker');
+        $this->enqueue_shortcode_assets();
         wp_enqueue_script('moment');
         wp_enqueue_script('fullcalendar');
-        wp_enqueue_script($this->plugin_name);
-        
-        wp_enqueue_style('jquery-ui');
         wp_enqueue_style('fullcalendar');
-        wp_enqueue_style($this->plugin_name);
         
         // Start output buffering
         ob_start();
@@ -129,11 +123,7 @@ class WP_Calendar_Public {
      */
     public function booking_shortcode($atts) {
         // Enqueue necessary scripts and styles
-        wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script($this->plugin_name);
-        
-        wp_enqueue_style('jquery-ui');
-        wp_enqueue_style($this->plugin_name);
+        $this->enqueue_shortcode_assets();
         
         // Start output buffering
         ob_start();

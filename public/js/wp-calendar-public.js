@@ -8,13 +8,25 @@
         }
 
         // Initialize datepickers
-        $('.wp-calendar-datepicker').datepicker({
-            dateFormat: 'yy-mm-dd',
-            minDate: 0,
-            beforeShowDay: function(date) {
-                // Disable weekends if configured
-                var day = date.getDay();
-                return [(day !== 0 && day !== 6)];
+        jQuery(document).ready(function($) {
+            // Initialize datepicker
+            if ($('.wp-calendar-datepicker').length) {
+                $('.wp-calendar-datepicker').datepicker({
+                    dateFormat: 'yy-mm-dd',
+                    minDate: 0,
+                    changeMonth: true,
+                    changeYear: true,
+                    beforeShowDay: function(date) {
+                        // Add logic to disable blocked dates if needed
+                        return [true, ''];
+                    },
+                    onSelect: function(dateText) {
+                        // When a date is selected, get available times
+                        getAvailableTimes(dateText);
+                    }
+                });
+                
+                console.log('Datepicker initialized');
             }
         });
 
