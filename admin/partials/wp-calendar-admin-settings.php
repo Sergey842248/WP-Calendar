@@ -24,7 +24,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
     <form method="post" action="options.php">
         <?php
         if ($active_tab == 'general') {
-            settings_fields('wp_calendar_general_settings');
+            settings_fields('wp_calendar_settings');
             do_settings_sections('wp_calendar_general_settings');
             ?>
             <table class="form-table">
@@ -125,7 +125,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
             </table>
         <?php
         } elseif ($active_tab == 'notifications') {
-            settings_fields('wp_calendar_notifications_settings');
+            settings_fields('wp_calendar_settings');
             do_settings_sections('wp_calendar_notifications_settings');
             ?>
             <table class="form-table">
@@ -161,7 +161,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
             </table>
         <?php
         } elseif ($active_tab == 'google_calendar') {
-            settings_fields('wp_calendar_google_calendar_settings');
+            settings_fields('wp_calendar_settings');
             do_settings_sections('wp_calendar_google_calendar_settings');
             ?>
             <table class="form-table">
