@@ -52,12 +52,19 @@ class WP_Calendar_Admin {
     /**
      * Register the JavaScript for the admin area.
      */
+    // Find the enqueue_scripts method and make sure it looks like this:
     public function enqueue_scripts() {
+        // Only load on plugin pages
+        $screen = get_current_screen();
+        if (strpos($screen->id, 'wp-calendar') === false) {
+            return;
+        }
+
         wp_enqueue_script('jquery-ui-datepicker');
         wp_enqueue_script('jquery-ui-dialog');
-        wp_enqueue_script('moment-js', 'https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js', array('jquery'), '2.29.1', true);
-        wp_enqueue_script('fullcalendar-js', 'https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.2/fullcalendar.min.js', array('jquery', 'moment-js'), '3.10.2', true);
-        wp_enqueue_script($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'admin/js/wp-calendar-admin.js', array('jquery', 'fullcalendar-js'), $this->version, true);
+        wp_enqueue_script('moment', WP_CALENDAR_PLUGIN_URL . 'admin/js/moment.min.js', array('jquery'), $this->version);
+        wp_enqueue_script('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'admin/js/fullcalendar.min.js', array('jquery', 'moment'), $this->version);
+        wp_enqueue_script($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'admin/js/wp-calendar-admin.js', array('jquery', 'jquery-ui-datepicker', 'fullcalendar'), $this->version, true);
 
         wp_localize_script($this->plugin_name, 'wp_calendar_admin', array(
             'ajax_url' => admin_url('admin-ajax.php'),
