@@ -44,37 +44,38 @@ class WP_Calendar_Public {
      * Register the stylesheets for the public-facing side of the site.
      */
     public function enqueue_styles() {
-        wp_enqueue_style('jquery-ui', WP_CALENDAR_PLUGIN_URL . 'public/css/jquery-ui.min.css', array(), $this->version);
-        wp_enqueue_style('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'public/css/fullcalendar.min.css', array(), $this->version);
-        wp_enqueue_style($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'public/css/wp-calendar-public.css', array(), $this->version);
+        wp_register_style('jquery-ui', WP_CALENDAR_PLUGIN_URL . 'public/css/jquery-ui.min.css', array(), $this->version);
+        wp_register_style('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'public/css/fullcalendar.min.css', array(), $this->version);
+        wp_register_style($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'public/css/wp-calendar-public.css', array(), $this->version);
     }
 
     /**
      * Register the JavaScript for the public-facing side of the site.
      */
     public function enqueue_scripts() {
-        wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('moment', WP_CALENDAR_PLUGIN_URL . 'public/js/moment.min.js', array('jquery'), $this->version);
-        wp_enqueue_script('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'public/js/fullcalendar.min.js', array('jquery', 'moment'), $this->version);
-        wp_enqueue_script($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'public/js/wp-calendar-public.js', array('jquery', 'fullcalendar'), $this->version);
+        wp_register_script('moment', WP_CALENDAR_PLUGIN_URL . 'public/js/moment.min.js', array('jquery'), $this->version);
+        wp_register_script('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'public/js/fullcalendar.min.js', array('jquery', 'moment'), $this->version);
+        wp_register_script($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'public/js/wp-calendar-public.js', array('jquery', 'jquery-ui-datepicker'), $this->version, true);
 
+        // Localize the script with data
         wp_localize_script($this->plugin_name, 'wp_calendar_public', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('wp_calendar_public_nonce'),
             'is_logged_in' => is_user_logged_in() ? 1 : 0,
             'login_url' => get_permalink(get_option('wp_calendar_login_page')),
-            'register_url' => get_permalink(get_option('wp_calendar_register_page')),
             'account_url' => get_permalink(get_option('wp_calendar_account_page')),
             'i18n' => array(
                 'select_date' => __('Please select a date', 'wp-calendar'),
                 'select_time' => __('Please select a time', 'wp-calendar'),
-                'booking_success' => __('Your appointment has been booked successfully.', 'wp-calendar'),
-                'booking_error' => __('An error occurred while booking your appointment. Please try again.', 'wp-calendar'),
-                'cancel_success' => __('Your appointment has been cancelled successfully.', 'wp-calendar'),
-                'cancel_error' => __('An error occurred while cancelling your appointment. Please try again.', 'wp-calendar'),
+                'loading' => __('Loading...', 'wp-calendar'),
+                'no_times_available' => __('No times available', 'wp-calendar'),
+                'booking_success' => __('Your appointment has been booked successfully!', 'wp-calendar'),
+                'booking_error' => __('An error occurred. Please try again.', 'wp-calendar'),
                 'login_required' => __('Please log in to book an appointment.', 'wp-calendar'),
-                'no_times_available' => __('No times available on this date. Please select another date.', 'wp-calendar'),
                 'confirm_cancel' => __('Are you sure you want to cancel this appointment?', 'wp-calendar'),
+                'cancel_success' => __('Your appointment has been cancelled successfully.', 'wp-calendar'),
+                'cancel_error' => __('An error occurred while cancelling your appointment.', 'wp-calendar'),
+                'passwords_not_match' => __('Passwords do not match.', 'wp-calendar'),
             ),
         ));
     }
@@ -83,22 +84,64 @@ class WP_Calendar_Public {
      * Register shortcodes
      */
     public function register_shortcodes() {
-        add_shortcode('wp_calendar_calendar', array($this, 'calendar_shortcode'));
-        add_shortcode('wp_calendar_account', array($this, 'account_shortcode'));
+        // Main calendar shortcode
+        add_shortcode('wp_calendar', array($this, 'calendar_shortcode'));
+        
+        // Booking form shortcode
+        add_shortcode('wp_calendar_booking', array($this, 'booking_shortcode'));
+        
+        // Login form shortcode
         add_shortcode('wp_calendar_login', array($this, 'login_shortcode'));
+        
+        // Register form shortcode
         add_shortcode('wp_calendar_register', array($this, 'register_shortcode'));
+        
+        // Account page shortcode
+        add_shortcode('wp_calendar_account', array($this, 'account_shortcode'));
     }
 
     /**
      * Calendar shortcode callback
      */
     public function calendar_shortcode($atts) {
-        $atts = shortcode_atts(array(
-            'view' => 'month',
-        ), $atts);
-
+        // Enqueue necessary scripts and styles
+        wp_enqueue_script('jquery-ui-datepicker');
+        wp_enqueue_script('moment');
+        wp_enqueue_script('fullcalendar');
+        wp_enqueue_script($this->plugin_name);
+        
+        wp_enqueue_style('jquery-ui');
+        wp_enqueue_style('fullcalendar');
+        wp_enqueue_style($this->plugin_name);
+        
+        // Start output buffering
         ob_start();
-        include WP_CALENDAR_PLUGIN_DIR . 'public/partials/wp-calendar-public-calendar.php';
+        
+        // Include the calendar template
+        include_once WP_CALENDAR_PLUGIN_DIR . 'public/partials/wp-calendar-public-calendar.php';
+        
+        // Return the buffered content
+        return ob_get_clean();
+    }
+
+    /**
+     * Booking form shortcode callback
+     */
+    public function booking_shortcode($atts) {
+        // Enqueue necessary scripts and styles
+        wp_enqueue_script('jquery-ui-datepicker');
+        wp_enqueue_script($this->plugin_name);
+        
+        wp_enqueue_style('jquery-ui');
+        wp_enqueue_style($this->plugin_name);
+        
+        // Start output buffering
+        ob_start();
+        
+        // Include the booking form template
+        include_once WP_CALENDAR_PLUGIN_DIR . 'public/partials/wp-calendar-public-booking.php';
+        
+        // Return the buffered content
         return ob_get_clean();
     }
 

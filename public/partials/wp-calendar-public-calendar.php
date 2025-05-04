@@ -1,56 +1,50 @@
 <?php
 /**
- * Public calendar view
+ * Calendar template for the public-facing side of the site.
  */
+
 if (!defined('ABSPATH')) {
     exit;
 }
 ?>
+
 <div class="wp-calendar-container">
-    <div class="wp-calendar-main">
-        <div id="wp-calendar-public-calendar"></div>
-    </div>
-    
-    <div class="wp-calendar-sidebar">
-        <div class="wp-calendar-booking-form">
+    <?php if (!is_user_logged_in() && get_option('wp_calendar_require_login', 1)) : ?>
+        <div class="wp-calendar-login-notice">
+            <p><?php _e('Please log in to book appointments.', 'wp-calendar'); ?></p>
+            <a href="<?php echo esc_url(get_permalink(get_option('wp_calendar_login_page'))); ?>" class="button"><?php _e('Log In', 'wp-calendar'); ?></a>
+            <a href="<?php echo esc_url(get_permalink(get_option('wp_calendar_register_page'))); ?>" class="button"><?php _e('Register', 'wp-calendar'); ?></a>
+        </div>
+    <?php else : ?>
+        <div id="wp-calendar-public"></div>
+        
+        <div class="wp-calendar-booking-form-container">
             <h3><?php _e('Book an Appointment', 'wp-calendar'); ?></h3>
             
-            <?php if (!is_user_logged_in()) : ?>
-                <div class="wp-calendar-login-notice">
-                    <p><?php _e('You must be logged in to book an appointment.', 'wp-calendar'); ?></p>
-                    <p>
-                        <a href="<?php echo esc_url(wp_login_url(get_permalink())); ?>" class="button"><?php _e('Log In', 'wp-calendar'); ?></a>
-                        <?php if (get_option('users_can_register')) : ?>
-                            <a href="<?php echo esc_url(wp_registration_url()); ?>" class="button"><?php _e('Register', 'wp-calendar'); ?></a>
-                        <?php endif; ?>
-                    </p>
-                </div>
-            <?php else : ?>
-                <form id="wp-calendar-booking-form">
-                    <div class="form-field">
-                        <label for="booking-date"><?php _e('Date', 'wp-calendar'); ?></label>
-                        <input type="text" id="booking-date" name="date" class="datepicker" required>
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="booking-time"><?php _e('Time', 'wp-calendar'); ?></label>
-                        <select id="booking-time" name="time" required>
-                            <option value=""><?php _e('Select a date first', 'wp-calendar'); ?></option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="booking-notes"><?php _e('Notes', 'wp-calendar'); ?></label>
-                        <textarea id="booking-notes" name="notes" rows="4"></textarea>
-                    </div>
-                    
-                    <div class="form-field">
-                        <button type="submit" class="button button-primary"><?php _e('Book Appointment', 'wp-calendar'); ?></button>
-                    </div>
-                </form>
+            <form id="wp-calendar-booking-form" method="post">
+                <div class="wp-calendar-message" style="display: none;"></div>
                 
-                <div id="wp-calendar-booking-message" style="display:none;"></div>
-            <?php endif; ?>
+                <div class="form-row">
+                    <label for="appointment_date"><?php _e('Date', 'wp-calendar'); ?></label>
+                    <input type="text" id="appointment_date" name="appointment_date" class="wp-calendar-datepicker" required readonly>
+                </div>
+                
+                <div class="form-row">
+                    <label for="appointment_time"><?php _e('Time', 'wp-calendar'); ?></label>
+                    <select id="appointment_time" name="appointment_time" required disabled>
+                        <option value=""><?php _e('Select a date first', 'wp-calendar'); ?></option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <label for="appointment_notes"><?php _e('Notes', 'wp-calendar'); ?></label>
+                    <textarea id="appointment_notes" name="appointment_notes" rows="4"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <button type="submit" class="button button-primary"><?php _e('Book Appointment', 'wp-calendar'); ?></button>
+                </div>
+            </form>
         </div>
-    </div>
+    <?php endif; ?>
 </div>
