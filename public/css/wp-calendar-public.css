@@ -1,0 +1,214 @@
+/**
+ * Public styles for WP Calendar
+ */
+
+/* General Layout */
+.wp-calendar-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+
+.wp-calendar-main {
+    flex: 2;
+    margin-right: 30px;
+    margin-bottom: 30px;
+}
+
+.wp-calendar-sidebar {
+    flex: 1;
+    min-width: 300px;
+}
+
+/* Calendar */
+#wp-calendar-public-calendar {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Booking Form */
+.wp-calendar-booking-form {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.wp-calendar-booking-form h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.wp-calendar-login-notice {
+    background: #f8f8f8;
+    padding: 15px;
+    border-radius: 3px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Forms */
+.form-field {
+    margin-bottom: 15px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.form-field input[type="text"],
+.form-field input[type="email"],
+.form-field input[type="password"],
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.form-field button {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+}
+
+/* Messages */
+#wp-calendar-booking-message,
+#wp-calendar-login-message,
+#wp-calendar-register-message {
+    padding: 10px 15px;
+    margin: 15px 0;
+    border-radius: 3px;
+}
+
+#wp-calendar-booking-message.success,
+#wp-calendar-login-message.success,
+#wp-calendar-register-message.success {
+    background-color: #dff0d8;
+    color: #3c763d;
+    border: 1px solid #d6e9c6;
+}
+
+#wp-calendar-booking-message.error,
+#wp-calendar-login-message.error,
+#wp-calendar-register-message.error {
+    background-color: #f2dede;
+    color: #a94442;
+    border: 1px solid #ebccd1;
+}
+
+/* Account Page */
+.wp-calendar-account {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.wp-calendar-account-actions {
+    margin-bottom: 20px;
+}
+
+.wp-calendar-appointments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.wp-calendar-appointments-table th,
+.wp-calendar-appointments-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.wp-calendar-appointments-table th {
+    background: #f8f8f8;
+    font-weight: 600;
+}
+
+/* Status Indicators */
+.wp-calendar-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-confirmed {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+.status-pending {
+    background-color: #fcf8e3;
+    color: #8a6d3b;
+}
+
+.status-cancelled {
+    background-color: #f2dede;
+    color: #a94442;
+}
+
+/* Login & Register Forms */
+.wp-calendar-login,
+.wp-calendar-register {
+    max-width: 400px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 25px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.wp-calendar-login-links,
+.wp-calendar-register-links {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Tooltips */
+.wp-calendar-tooltip {
+    display: none;
+    position: absolute;
+    background: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    z-index: 100;
+}
+
+.wp-calendar-notice:hover + .wp-calendar-tooltip {
+    display: block;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .wp-calendar-container {
+        flex-direction: column;
+    }
+    
+    .wp-calendar-main {
+        margin-right: 0;
+    }
+    
+    .wp-calendar-appointments-table {
+        display: block;
+        overflow-x: auto;
+    }
+}

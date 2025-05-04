@@ -1,0 +1,165 @@
+/**
+ * Admin styles for WP Calendar
+ */
+
+/* General Layout */
+.wp-calendar-admin-container {
+    display: flex;
+    margin-top: 20px;
+}
+
+.wp-calendar-sidebar {
+    width: 250px;
+    margin-right: 20px;
+}
+
+.wp-calendar-main {
+    flex: 1;
+}
+
+/* Calendar */
+#wp-calendar-admin-calendar {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Legend */
+.wp-calendar-legend {
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.wp-calendar-legend ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wp-calendar-legend li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.wp-calendar-legend-color {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    border-radius: 3px;
+}
+
+/* Actions */
+.wp-calendar-actions {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.wp-calendar-actions button {
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+/* Forms */
+.form-field {
+    margin-bottom: 15px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.form-field input[type="text"],
+.form-field input[type="email"],
+.form-field input[type="password"],
+.form-field select,
+.form-field textarea {
+    width: 100%;
+}
+
+/* Status Indicators */
+.wp-calendar-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-confirmed {
+    background-color: #dff0d8;
+    color: #3c763d;
+}
+
+.status-pending {
+    background-color: #fcf8e3;
+    color: #8a6d3b;
+}
+
+.status-cancelled {
+    background-color: #f2dede;
+    color: #a94442;
+}
+
+/* Dialog Customizations */
+.ui-dialog {
+    padding: 0;
+    border-radius: 3px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.ui-dialog .ui-dialog-titlebar {
+    background: #fcfcfc;
+    border-bottom: 1px solid #dfdfdf;
+    height: 36px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 36px;
+    padding: 0 36px 0 16px;
+}
+
+.ui-dialog .ui-dialog-content {
+    padding: 16px;
+}
+
+.ui-dialog .ui-dialog-buttonpane {
+    background: #fcfcfc;
+    border-top: 1px solid #dfdfdf;
+    padding: 8px 16px;
+}
+
+/* Settings Tabs */
+.nav-tab-wrapper {
+    margin-bottom: 20px;
+}
+
+/* Block Type Fields */
+.block-specific,
+.block-full-day,
+.block-recurring {
+    display: none;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .wp-calendar-admin-container {
+        flex-direction: column;
+    }
+    
+    .wp-calendar-sidebar {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 20px;
+    }
+}
