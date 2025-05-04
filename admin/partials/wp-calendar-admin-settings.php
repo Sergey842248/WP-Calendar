@@ -86,7 +86,7 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
             </table>
         <?php
         } elseif ($active_tab == 'business_hours') {
-            settings_fields('wp_calendar_business_hours_settings');
+            settings_fields('wp_calendar_settings');
             do_settings_sections('wp_calendar_business_hours_settings');
             ?>
             <table class="form-table">
