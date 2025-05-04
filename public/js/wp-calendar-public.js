@@ -371,4 +371,123 @@
         });
     }
 
-})(jQuery);
+    // Check if the booking form exists and add event listener
+    jQuery(document).ready(function($) {
+        var bookingForm = $('#wp-calendar-booking-form');
+        
+        if (bookingForm.length) {
+            // Initialize datepicker
+            $('.wp-calendar-datepicker').datepicker({
+                dateFormat: 'yy-mm-dd',
+                minDate: 0,
+                beforeShowDay: function(date) {
+                    // Add logic to disable blocked dates if needed
+                    return [true, ''];
+                },
+                onSelect: function(dateText) {
+                    // When a date is selected, get available times
+                    getAvailableTimes(dateText);
+                }
+            });
+            
+            // Handle form submission
+            bookingForm.on('submit', function(e) {
+                e.preventDefault();
+                
+                var dateField = $('#appointment_date');
+                var timeField = $('#appointment_time');
+                var notesField = $('#appointment_notes');
+                
+                // Validate fields
+                if (!dateField.val()) {
+                    showMessage('error', wp_calendar_public.i18n.select_date);
+                    return false;
+                }
+                
+                if (!timeField.val()) {
+                    showMessage('error', wp_calendar_public.i18n.select_time);
+                    return false;
+                }
+                
+                // Show loading message
+                showMessage('info', wp_calendar_public.i18n.loading);
+                
+                // Submit the booking
+                $.ajax({
+                    url: wp_calendar_public.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'wp_calendar_book_appointment',
+                        nonce: wp_calendar_public.nonce,
+                        date: dateField.val(),
+                        time: timeField.val(),
+                        notes: notesField.val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage('success', response.data.message);
+                            // Reset form
+                            bookingForm[0].reset();
+                            timeField.empty().append('<option value="">' + wp_calendar_public.i18n.select_date + '</option>').prop('disabled', true);
+                            
+                            // Reload calendar if it exists
+                            if ($('#wp-calendar-public').length) {
+                                $('#wp-calendar-public').fullCalendar('refetchEvents');
+                            }
+                        } else {
+                            showMessage('error', response.data);
+                        }
+                    },
+                    error: function() {
+                        showMessage('error', wp_calendar_public.i18n.booking_error);
+                    }
+                });
+                
+                return false;
+            });
+        }
+        
+        // Function to get available times for a selected date
+        function getAvailableTimes(date) {
+            var timeField = $('#appointment_time');
+            
+            // Reset and disable time field
+            timeField.empty().append('<option value="">' + wp_calendar_public.i18n.loading + '</option>').prop('disabled', true);
+            
+            $.ajax({
+                url: wp_calendar_public.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'wp_calendar_get_available_times',
+                    nonce: wp_calendar_public.nonce,
+                    date: date
+                },
+                success: function(response) {
+                    timeField.empty();
+                    
+                    if (response.success && response.data.length > 0) {
+                        $.each(response.data, function(i, slot) {
+                            timeField.append('<option value="' + slot.value + '">' + slot.label + '</option>');
+                        });
+                        timeField.prop('disabled', false);
+                    } else {
+                        timeField.append('<option value="">' + wp_calendar_public.i18n.no_times_available + '</option>');
+                    }
+                },
+                error: function() {
+                    timeField.empty().append('<option value="">' + wp_calendar_public.i18n.booking_error + '</option>');
+                }
+            });
+        }
+        
+        // Function to show messages
+        function showMessage(type, message) {
+            var messageDiv = $('.wp-calendar-message');
+            messageDiv.removeClass('error success info').addClass(type).html(message).show();
+            
+            // Scroll to message
+            $('html, body').animate({
+                scrollTop: messageDiv.offset().top - 100
+            }, 500);
+        }
+    });

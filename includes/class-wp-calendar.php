@@ -128,27 +128,21 @@ class WP_Calendar {
         $this->loader->add_action('wp_ajax_wp_calendar_delete_blocked_time', $plugin_admin, 'ajax_delete_blocked_time');
     }
 
+    // Find the define_public_hooks method and make sure it includes:
+    
     /**
      * Register all of the hooks related to the public-facing functionality
      * of the plugin.
      */
     private function define_public_hooks() {
         $plugin_public = new WP_Calendar_Public($this->get_plugin_name(), $this->get_version());
-
+    
         $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
         $this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts');
         $this->loader->add_action('init', $plugin_public, 'register_shortcodes');
-
-        // AJAX handlers
-        $this->loader->add_action('wp_ajax_wp_calendar_get_public_events', $plugin_public, 'ajax_get_public_events');
-        $this->loader->add_action('wp_ajax_nopriv_wp_calendar_get_public_events', $plugin_public, 'ajax_get_public_events');
-        $this->loader->add_action('wp_ajax_wp_calendar_get_available_times', $plugin_public, 'ajax_get_available_times');
-        $this->loader->add_action('wp_ajax_nopriv_wp_calendar_get_available_times', $plugin_public, 'ajax_get_available_times');
-        $this->loader->add_action('wp_ajax_wp_calendar_book_appointment', $plugin_public, 'ajax_book_appointment');
-        $this->loader->add_action('wp_ajax_wp_calendar_cancel_appointment', $plugin_public, 'ajax_cancel_appointment');
-        $this->loader->add_action('wp_ajax_wp_calendar_login', $plugin_public, 'ajax_login');
-        $this->loader->add_action('wp_ajax_nopriv_wp_calendar_login', $plugin_public, 'ajax_login');
-        $this->loader->add_action('wp_ajax_nopriv_wp_calendar_register', $plugin_public, 'ajax_register');
+        
+        // Make sure this line is added to register AJAX handlers
+        $this->loader->add_action('init', $plugin_public, 'register_ajax_handlers');
     }
 
     /**
