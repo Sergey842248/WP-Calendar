@@ -240,19 +240,21 @@ class WP_Calendar_Appointment {
             ));
         }
         
+        // Instead of deleting, update the status to 'cancelled'
+        $result = $wpdb->update(
+            $table_name,
+            array('status' => 'cancelled'),
+            array('id' => $id),
+            array('%s'),
+            array('%d')
+        );
+        
         // Delete from Google Calendar if integrated
         if (!empty($appointment->google_event_id) && get_option('wp_calendar_google_calendar_integration') === 'enabled') {
             WP_Calendar_Google::delete_event($appointment->google_event_id);
         }
         
-        // Delete the appointment
-        $result = $wpdb->delete(
-            $table_name,
-            array('id' => $id),
-            array('%d')
-        );
-        
-        return $result;
+        return $result ? true : false;
     }
     
     /**
