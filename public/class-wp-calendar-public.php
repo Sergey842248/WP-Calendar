@@ -241,13 +241,13 @@ class WP_Calendar_Public {
         $start = isset($_POST['start']) ? sanitize_text_field($_POST['start']) : null;
         $end = isset($_POST['end']) ? sanitize_text_field($_POST['end']) : null;
 
+        $events = array();
+
         // Get blocked times
         $blocked_times = WP_Calendar_Appointment::get_blocked_times(array(
             'date_from' => $start,
             'date_to' => $end,
         ));
-
-        $events = array();
 
         // Process blocked times
         foreach ($blocked_times as $blocked) {
@@ -363,45 +363,27 @@ class WP_Calendar_Public {
             return;
         }
 
-        // Check if the time slot is available
-        if (!WP_Calendar_DB::is_time_slot_available($date, $time)) {
-            wp_send_json_error(__('This time slot is no longer available. Please select another time.', 'wp-calendar'));
-            return;
-        }
-
-        $user_id = is_user_logged_in() ? get_current_user_id() : 0;
-
-        // Make sure we're using the correct class and method for saving appointments
         $appointment_data = array(
-            'user_id' => $user_id,
+            'user_id' => get_current_user_id(),
             'appointment_date' => $date,
             'appointment_time' => $time,
             'notes' => $notes,
-            'status' => 'pending',
+            'status' => 'confirmed'
         );
 
-        // Use WP_Calendar_DB instead of WP_Calendar_Appointment if that's the correct class
-        $result = WP_Calendar_DB::save_appointment($appointment_data);
+        $result = WP_Calendar_Appointment::save_appointment($appointment_data);
 
-        if (!$result) {
-            wp_send_json_error(__('Failed to book appointment. Please try again.', 'wp-calendar'));
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
             return;
         }
 
-        // Send notification if the class exists
-        if (class_exists('WP_Calendar_Notifications')) {
-            WP_Calendar_Notifications::send_booking_notification($result);
+        // Send confirmation email
+        if (get_option('wp_calendar_email_notifications', 1)) {
+            WP_Calendar_Notification::send_confirmation_email($result);
         }
 
-        // Add to Google Calendar if enabled and the class exists
-        if (class_exists('WP_Calendar_Google') && WP_Calendar_Google::is_enabled()) {
-            WP_Calendar_Google::add_appointment($result);
-        }
-
-        wp_send_json_success(array(
-            'id' => $result,
-            'message' => __('Your appointment has been booked successfully', 'wp-calendar'),
-        ));
+        wp_send_json_success(__('Your appointment has been booked successfully', 'wp-calendar'));
     }
 
     /**
