@@ -70,7 +70,7 @@ $appointments = $wpdb->get_results($wpdb->prepare("
                         <td><?php echo wp_kses_post(nl2br($appointment['notes'])); ?></td>
                         <td>
                             <?php if ($appointment['status'] !== 'cancelled' && $can_cancel) : ?>
-                                <a href="#" class="cancel-appointment" data-id="<?php echo esc_attr($appointment['id']); ?>"><?php _e('Cancel', 'wp-calendar'); ?></a>
+                                <a href="#" class="wp-calendar-cancel-appointment" data-id="<?php echo esc_attr($appointment['id']); ?>"><?php _e('Cancel', 'wp-calendar'); ?></a>
                             <?php elseif ($appointment['status'] !== 'cancelled' && !$can_cancel) : ?>
                                 <span class="wp-calendar-notice"><?php _e('Cannot cancel', 'wp-calendar'); ?></span>
                                 <span class="wp-calendar-tooltip"><?php _e('Cancellation period has passed', 'wp-calendar'); ?></span>

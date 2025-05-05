@@ -180,7 +180,17 @@
                     alert(response.data || wp_calendar_public.i18n.cancel_error);
                 }
             },
-            error: function() {
+            success: function(response) {
+                console.log('Cancel Appointment AJAX Success:', response); // Added console log
+                if (response.success) {
+                    alert(wp_calendar_public.i18n.cancel_success);
+                    location.reload();
+                } else {
+                    alert(response.data || wp_calendar_public.i18n.cancel_error);
+                }
+            },
+            error: function(xhr, status, error) { // Added error parameters for more info
+                console.error('Cancel Appointment AJAX Error:', status, error, xhr); // Added console log
                 alert(wp_calendar_public.i18n.cancel_error);
             }
         });
