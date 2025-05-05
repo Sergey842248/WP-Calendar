@@ -60,7 +60,7 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            showMessage('success', response.data.message);
+                            showMessage('success', response.data);
                             // Reset form
                             bookingForm[0].reset();
                             timeField.empty().append('<option value="">' + wp_calendar_public.i18n.select_date + '</option>').prop('disabled', true);
@@ -95,7 +95,6 @@
         });
 
         // Cancel appointment button
-        // Funktion zum Stornieren eines Termins
         $(document).on('click', '.wp-calendar-cancel-appointment', function(e) {
             e.preventDefault();
             
@@ -103,7 +102,7 @@
                 return;
             }
             
-            var appointmentId = $(this).data('id');
+            var appointmentId = $(this).attr('data-appointment-id');
             var row = $(this).closest('tr');
             
             $.ajax({

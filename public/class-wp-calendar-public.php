@@ -213,15 +213,15 @@ class WP_Calendar_Public {
      * Register AJAX handlers
      */
     public function register_ajax_handlers() {
-        // Add this line
+        // Public AJAX handlers (available to logged in and non-logged in users)
         add_action('wp_ajax_wp_calendar_get_available_times', array($this, 'get_available_times'));
         add_action('wp_ajax_nopriv_wp_calendar_get_available_times', array($this, 'get_available_times'));
         
-        add_action('wp_ajax_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
-        add_action('wp_ajax_nopriv_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
-        
         add_action('wp_ajax_wp_calendar_get_public_events', array($this, 'ajax_get_public_events'));
         add_action('wp_ajax_nopriv_wp_calendar_get_public_events', array($this, 'ajax_get_public_events'));
+        
+        add_action('wp_ajax_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
+        add_action('wp_ajax_nopriv_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
         
         add_action('wp_ajax_wp_calendar_cancel_appointment', array($this, 'ajax_cancel_appointment'));
         
