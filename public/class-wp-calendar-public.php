@@ -213,9 +213,9 @@ class WP_Calendar_Public {
      * Register AJAX handlers
      */
     public function register_ajax_handlers() {
-        // Add this method to register all AJAX handlers
-        add_action('wp_ajax_wp_calendar_get_available_times', array($this, 'ajax_get_available_times'));
-        add_action('wp_ajax_nopriv_wp_calendar_get_available_times', array($this, 'ajax_get_available_times'));
+        // Add this line
+        add_action('wp_ajax_wp_calendar_get_available_times', array($this, 'get_available_times'));
+        add_action('wp_ajax_nopriv_wp_calendar_get_available_times', array($this, 'get_available_times'));
         
         add_action('wp_ajax_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
         add_action('wp_ajax_nopriv_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
@@ -291,18 +291,48 @@ class WP_Calendar_Public {
     /**
      * AJAX handler for getting available times
      */
-    public function ajax_get_available_times() {
-        check_ajax_referer('wp_calendar_public_nonce', 'nonce');
-
-        $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : '';
-
-        if (empty($date)) {
-            wp_send_json_error(__('Please select a date', 'wp-calendar'));
+    public function get_available_times() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wp_calendar_public_nonce')) {
+            wp_send_json_error(__('Security check failed.', 'wp-calendar'));
         }
-
-        $available_times = WP_Calendar_DB::get_available_time_slots($date);
-
-        wp_send_json_success($available_times);
+        
+        // Get date from request
+        $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : '';
+        
+        if (empty($date)) {
+            wp_send_json_error(__('No date provided.', 'wp-calendar'));
+        }
+        
+        // Get business hours
+        $business_hours_start = get_option('wp_calendar_business_hours_start', '09:00');
+        $business_hours_end = get_option('wp_calendar_business_hours_end', '17:00');
+        $slot_duration = get_option('wp_calendar_time_slot_duration', 60);
+        
+        // Generate time slots
+        $start = new DateTime('today ' . $business_hours_start);
+        $end = new DateTime('today ' . $business_hours_end);
+        $interval = new DateInterval('PT' . $slot_duration . 'M');
+        
+        $times = array();
+        $current = clone $start;
+        
+        while ($current < $end) {
+            $time_value = $current->format('H:i:s');
+            $time_display = $current->format(get_option('time_format'));
+            
+            // Check if this time slot is available
+            if (WP_Calendar_Appointment::is_time_slot_available($date, $time_value)) {
+                $times[] = array(
+                    'value' => $time_value,
+                    'label' => $time_display
+                );
+            }
+            
+            $current->add($interval);
+        }
+        
+        wp_send_json_success($times);
     }
 
     /**

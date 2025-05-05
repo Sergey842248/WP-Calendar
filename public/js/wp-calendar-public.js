@@ -305,12 +305,13 @@
     }
 
     // Function to get available times for a selected date
+    // Diese Funktion muss ergänzt oder korrigiert werden
     function getAvailableTimes(date) {
-        var timeField = $('#appointment_time');
-
-        // Reset and disable time field
-        timeField.empty().append('<option value="">' + wp_calendar_public.i18n.loading + '</option>').prop('disabled', true);
-
+        var timeSelect = $('#appointment_time');
+    
+        // Zeige Ladetext
+        timeSelect.empty().append('<option value="">' + wp_calendar_public.i18n.loading + '</option>').prop('disabled', true);
+    
         $.ajax({
             url: wp_calendar_public.ajax_url,
             type: 'POST',
@@ -320,19 +321,23 @@
                 date: date
             },
             success: function(response) {
-                timeField.empty();
-
+                timeSelect.empty();
+    
                 if (response.success && response.data.length > 0) {
-                    $.each(response.data, function(i, slot) {
-                        timeField.append('<option value="' + slot.value + '">' + slot.label + '</option>');
+                    // Füge die verfügbaren Zeiten hinzu
+                    $.each(response.data, function(index, time) {
+                        timeSelect.append('<option value="' + time.value + '">' + time.label + '</option>');
                     });
-                    timeField.prop('disabled', false);
+                    timeSelect.prop('disabled', false);
                 } else {
-                    timeField.append('<option value="">' + wp_calendar_public.i18n.no_times_available + '</option>');
+                    // Wenn keine Zeiten verfügbar sind, zeige eine entsprechende Nachricht
+                    timeSelect.append('<option value="">' + wp_calendar_public.i18n.no_times_available + '</option>');
+                    timeSelect.prop('disabled', true);
                 }
             },
             error: function() {
-                timeField.empty().append('<option value="">' + wp_calendar_public.i18n.booking_error + '</option>');
+                timeSelect.empty().append('<option value="">' + wp_calendar_public.i18n.booking_error + '</option>');
+                timeSelect.prop('disabled', true);
             }
         });
     }
