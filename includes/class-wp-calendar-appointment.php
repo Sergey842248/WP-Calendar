@@ -73,42 +73,36 @@ class WP_Calendar_Appointment {
      */
     public static function is_time_slot_available($date, $time) {
         global $wpdb;
-        $appointments_table = $wpdb->prefix . 'wp_calendar_appointments';
+        $table_name = $wpdb->prefix . 'wp_calendar_appointments';
         $blocked_table = $wpdb->prefix . 'wp_calendar_blocked_times';
         
+        // Check if the date is blocked
+        $blocked_date = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*) FROM $blocked_table
+            WHERE blocked_date = %s AND blocked_time IS NULL
+        ", $date));
+        
+        if ($blocked_date > 0) {
+            return false;
+        }
+        
+        // Check if the specific time slot is blocked
+        $blocked_time = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*) FROM $blocked_table
+            WHERE blocked_date = %s AND blocked_time = %s
+        ", $date, $time));
+        
+        if ($blocked_time > 0) {
+            return false;
+        }
+        
         // Check if there's already an appointment at this time
-        $appointment_exists = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $appointments_table 
-            WHERE appointment_date = %s 
-            AND appointment_time = %s 
-            AND status = 'confirmed'",
-            $date,
-            $time
-        ));
+        $existing_appointment = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*) FROM $table_name
+            WHERE appointment_date = %s AND appointment_time = %s AND status != 'cancelled'
+        ", $date, $time));
         
-        if ($appointment_exists > 0) {
-            return false;
-        }
-        
-        // Check if this time is blocked
-        $day_of_week = date('w', strtotime($date));
-        $is_blocked = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM $blocked_table 
-            WHERE (blocked_date = %s AND blocked_time = %s)
-            OR (blocked_time = %s AND is_recurring = 1 AND day_of_week = %d)
-            OR (blocked_date = %s AND blocked_time IS NULL)",
-            $date,
-            $time,
-            $time,
-            $day_of_week,
-            $date
-        ));
-        
-        if ($is_blocked > 0) {
-            return false;
-        }
-        
-        return true;
+        return $existing_appointment == 0;
     }
     
     /**
