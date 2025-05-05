@@ -444,25 +444,22 @@ class WP_Calendar_Public {
             ));
         }
 
-        // Update the appointment status to cancelled
-        $result = WP_Calendar_Appointment::save_appointment(array(
-            'id' => $id,
-            'status' => 'cancelled',
-        ));
+        // Delete the appointment
+        $result = WP_Calendar_DB::delete_appointment($id);
 
-        if (is_wp_error($result)) {
-            wp_send_json_error($result->get_error_message());
+        if ($result === false) {
+            wp_send_json_error(__('Failed to delete appointment. Please try again.', 'wp-calendar'));
         } else {
-            // Send cancellation notification
-            WP_Calendar_Notifications::send_cancellation_notification($id);
+            // Send cancellation notification (optional, depending on desired behavior after deletion)
+            // WP_Calendar_Notifications::send_cancellation_notification($id);
 
             // Update Google Calendar if enabled
-            if (WP_Calendar_Google::is_enabled()) {
+            if (class_exists('WP_Calendar_Google') && WP_Calendar_Google::is_enabled()) {
                 WP_Calendar_Google::delete_appointment($id);
             }
 
             wp_send_json_success(array(
-                'message' => __('Your appointment has been cancelled successfully', 'wp-calendar'),
+                'message' => __('Your appointment has been deleted successfully', 'wp-calendar'),
             ));
         }
     }
