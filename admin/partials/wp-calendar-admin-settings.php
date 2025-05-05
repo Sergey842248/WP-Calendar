@@ -69,19 +69,19 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'general';
         // Einstellungsfelder basierend auf dem aktiven Tab anzeigen
         switch ($active_tab) {
             case 'general':
-                include_once 'settings/general-settings.php';
+                include_once plugin_dir_path(__FILE__) . 'settings/general-settings.php';
                 break;
                 
             case 'pages':
-                include_once 'settings/page-settings.php';
+                include_once plugin_dir_path(__FILE__) . 'settings/page-settings.php';
                 break;
                 
             case 'email':
-                include_once 'settings/email-settings.php';
+                include_once plugin_dir_path(__FILE__) . 'settings/email-settings.php';
                 break;
                 
             case 'google':
-                include_once 'settings/google-settings.php';
+                include_once plugin_dir_path(__FILE__) . 'settings/google-settings.php';
                 break;
         }
         ?>
