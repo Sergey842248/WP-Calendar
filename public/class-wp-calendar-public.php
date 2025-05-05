@@ -295,6 +295,7 @@ class WP_Calendar_Public {
         // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'wp_calendar_public_nonce')) {
             wp_send_json_error(__('Security check failed.', 'wp-calendar'));
+            return;
         }
         
         // Get date from request
@@ -302,37 +303,44 @@ class WP_Calendar_Public {
         
         if (empty($date)) {
             wp_send_json_error(__('No date provided.', 'wp-calendar'));
+            return;
         }
         
-        // Get business hours
-        $business_hours_start = get_option('wp_calendar_business_hours_start', '09:00');
-        $business_hours_end = get_option('wp_calendar_business_hours_end', '17:00');
-        $slot_duration = get_option('wp_calendar_time_slot_duration', 60);
-        
-        // Generate time slots
-        $start = new DateTime('today ' . $business_hours_start);
-        $end = new DateTime('today ' . $business_hours_end);
-        $interval = new DateInterval('PT' . $slot_duration . 'M');
-        
-        $times = array();
-        $current = clone $start;
-        
-        while ($current < $end) {
-            $time_value = $current->format('H:i:s');
-            $time_display = $current->format(get_option('time_format'));
+        try {
+            // Get business hours
+            $business_hours_start = get_option('wp_calendar_business_hours_start', '09:00');
+            $business_hours_end = get_option('wp_calendar_business_hours_end', '17:00');
+            $slot_duration = get_option('wp_calendar_time_slot_duration', 60);
             
-            // Check if this time slot is available
-            if (WP_Calendar_Appointment::is_time_slot_available($date, $time_value)) {
-                $times[] = array(
-                    'value' => $time_value,
-                    'label' => $time_display
-                );
+            // Generate time slots
+            $start = new DateTime('today ' . $business_hours_start);
+            $end = new DateTime('today ' . $business_hours_end);
+            $interval = new DateInterval('PT' . $slot_duration . 'M');
+            
+            $times = array();
+            $current = clone $start;
+            
+            while ($current < $end) {
+                $time_value = $current->format('H:i:s');
+                $time_display = $current->format(get_option('time_format'));
+                
+                // Check if this time slot is available
+                // Temporarily disable availability check to see if that's causing the issue
+                // if (WP_Calendar_Appointment::is_time_slot_available($date, $time_value)) {
+                    $times[] = array(
+                        'value' => $time_value,
+                        'label' => $time_display
+                    );
+                // }
+                
+                $current->add($interval);
             }
             
-            $current->add($interval);
+            wp_send_json_success($times);
+        } catch (Exception $e) {
+            wp_send_json_error(__('Error generating time slots: ', 'wp-calendar') . $e->getMessage());
+            return;
         }
-        
-        wp_send_json_success($times);
     }
 
     /**
