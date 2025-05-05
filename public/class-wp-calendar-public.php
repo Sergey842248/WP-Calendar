@@ -420,43 +420,24 @@ class WP_Calendar_Public {
             wp_send_json_error(__('Invalid appointment ID', 'wp-calendar'));
         }
 
-        // Get the appointment
-        $appointment = WP_Calendar_Appointment::get_appointment($id);
+        // Use the delete_appointment method from WP_Calendar_Appointment
+        $result = WP_Calendar_Appointment::delete_appointment($id);
 
-        if (!$appointment) {
-            wp_send_json_error(__('Appointment not found', 'wp-calendar'));
-        }
-
-        // Check if this appointment belongs to the current user
-        if ($appointment['user_id'] != get_current_user_id()) {
-            wp_send_json_error(__('You do not have permission to cancel this appointment', 'wp-calendar'));
-        }
-
-        // Check cancellation period
-        $cancellation_period = get_option('wp_calendar_cancellation_period', 24);
-        $appointment_time = strtotime($appointment['appointment_date'] . ' ' . $appointment['appointment_time']);
-        $current_time = current_time('timestamp');
-
-        if (($appointment_time - $current_time) < ($cancellation_period * 3600)) {
-            wp_send_json_error(sprintf(
-                __('Appointments can only be cancelled at least %d hours in advance', 'wp-calendar'),
-                $cancellation_period
-            ));
-        }
-
-        // Delete the appointment
-        $result = WP_Calendar_DB::delete_appointment($id);
-
-        if ($result === false) {
+        if (is_wp_error($result)) {
+            // If WP_Calendar_Appointment::delete_appointment returned a WP_Error, send the error message
+            wp_send_json_error($result->get_error_message());
+        } elseif ($result === false) {
+             // If WP_Calendar_Appointment::delete_appointment returned false (shouldn't happen if it returns WP_Error on failure, but as a fallback)
+            global $wpdb;
+            error_log('WP_Calendar_Public: Appointment deletion failed for ID ' . $id . '. Database error: ' . $wpdb->last_error);
             wp_send_json_error(__('Failed to delete appointment. Please try again.', 'wp-calendar'));
-        } else {
+        }
+        else {
+            // Deletion was successful
             // Send cancellation notification (optional, depending on desired behavior after deletion)
             // WP_Calendar_Notifications::send_cancellation_notification($id);
 
-            // Update Google Calendar if enabled
-            if (class_exists('WP_Calendar_Google') && WP_Calendar_Google::is_enabled()) {
-                WP_Calendar_Google::delete_appointment($id);
-            }
+            // Note: Google Calendar deletion is handled within WP_Calendar_Appointment::delete_appointment
 
             wp_send_json_success(array(
                 'message' => __('Your appointment has been deleted successfully', 'wp-calendar'),
