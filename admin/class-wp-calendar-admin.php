@@ -141,16 +141,34 @@ class WP_Calendar_Admin {
     /**
      * Register plugin settings.
      */
+    /**
+     * Register the settings for the plugin
+     */
     public function register_settings() {
-        register_setting('wp_calendar_settings', 'wp_calendar_business_hours_start');
-        register_setting('wp_calendar_settings', 'wp_calendar_business_hours_end');
-        register_setting('wp_calendar_settings', 'wp_calendar_time_slot_duration');
-        register_setting('wp_calendar_settings', 'wp_calendar_cancellation_period');
-        register_setting('wp_calendar_settings', 'wp_calendar_admin_email');
-        register_setting('wp_calendar_settings', 'wp_calendar_notification_emails');
-        register_setting('wp_calendar_settings', 'wp_calendar_google_calendar_integration');
-        register_setting('wp_calendar_settings', 'wp_calendar_google_calendar_id');
-        register_setting('wp_calendar_settings', 'wp_calendar_google_api_key');
+        // Register all settings fields here
+        register_setting('wp_calendar_general_settings', 'wp_calendar_business_hours_start');
+        register_setting('wp_calendar_general_settings', 'wp_calendar_business_hours_end');
+        register_setting('wp_calendar_general_settings', 'wp_calendar_time_slot_duration');
+        register_setting('wp_calendar_general_settings', 'wp_calendar_require_login');
+        register_setting('wp_calendar_general_settings', 'wp_calendar_cancellation_period');
+        
+        // Register page settings
+        register_setting('wp_calendar_page_settings', 'wp_calendar_booking_page');
+        register_setting('wp_calendar_page_settings', 'wp_calendar_account_page');
+        register_setting('wp_calendar_page_settings', 'wp_calendar_login_page');
+        register_setting('wp_calendar_page_settings', 'wp_calendar_register_page');
+        
+        // Register email settings
+        register_setting('wp_calendar_email_settings', 'wp_calendar_admin_email');
+        register_setting('wp_calendar_email_settings', 'wp_calendar_email_notifications');
+        register_setting('wp_calendar_email_settings', 'wp_calendar_confirmation_email_subject');
+        register_setting('wp_calendar_email_settings', 'wp_calendar_confirmation_email_body');
+        
+        // Register Google Calendar settings
+        register_setting('wp_calendar_google_settings', 'wp_calendar_google_calendar_integration');
+        register_setting('wp_calendar_google_settings', 'wp_calendar_google_client_id');
+        register_setting('wp_calendar_google_settings', 'wp_calendar_google_client_secret');
+        register_setting('wp_calendar_google_settings', 'wp_calendar_google_calendar_id');
     }
 
     /**
