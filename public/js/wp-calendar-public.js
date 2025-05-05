@@ -95,12 +95,78 @@
         });
 
         // Cancel appointment button
+        // Funktion zum Stornieren eines Termins
         $(document).on('click', '.wp-calendar-cancel-appointment', function(e) {
             e.preventDefault();
-            var appointmentId = $(this).data('id');
-            if (confirm(wp_calendar_public.i18n.confirm_cancel)) {
-                cancelAppointment(appointmentId);
+            
+            if (!confirm(wp_calendar_public.i18n.confirm_cancel)) {
+                return;
             }
+            
+            var appointmentId = $(this).data('id');
+            var row = $(this).closest('tr');
+            
+            $.ajax({
+                url: wp_calendar_public.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'wp_calendar_cancel_appointment',
+                    nonce: wp_calendar_public.nonce,
+                    appointment_id: appointmentId
+                },
+                beforeSend: function() {
+                    row.addClass('wp-calendar-loading');
+                },
+                success: function(response) {
+                    row.removeClass('wp-calendar-loading');
+                    
+                    if (response.success) {
+                        // Erfolgsmeldung anzeigen
+                        $('.wp-calendar-message')
+                            .removeClass('error')
+                            .addClass('success')
+                            .text(response.data)
+                            .show();
+                        
+                        // Zeile aktualisieren oder entfernen
+                        row.find('.wp-calendar-status').text(wp_calendar_public.i18n.cancelled);
+                        row.addClass('wp-calendar-cancelled');
+                        row.find('.wp-calendar-cancel-appointment').remove();
+                        
+                        // Kalender aktualisieren, falls vorhanden
+                        if (typeof calendar !== 'undefined') {
+                            calendar.refetchEvents();
+                        }
+                    } else {
+                        // Fehlermeldung anzeigen
+                        $('.wp-calendar-message')
+                            .removeClass('success')
+                            .addClass('error')
+                            .text(response.data)
+                            .show();
+                    }
+                    
+                    // Zum Anfang der Seite scrollen, damit die Meldung sichtbar ist
+                    $('html, body').animate({
+                        scrollTop: $('.wp-calendar-message').offset().top - 50
+                    }, 500);
+                },
+                error: function() {
+                    row.removeClass('wp-calendar-loading');
+                    
+                    // Fehlermeldung anzeigen
+                    $('.wp-calendar-message')
+                        .removeClass('success')
+                        .addClass('error')
+                        .text(wp_calendar_public.i18n.booking_error)
+                        .show();
+                    
+                    // Zum Anfang der Seite scrollen, damit die Meldung sichtbar ist
+                    $('html, body').animate({
+                        scrollTop: $('.wp-calendar-message').offset().top - 50
+                    }, 500);
+                }
+            });
         });
     });
 

@@ -1,161 +1,174 @@
 <?php
 /**
- * Google Calendar integration for the plugin.
- */
-
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-/**
- * Google Calendar integration for the plugin.
+ * Google Calendar integration
  */
 class WP_Calendar_Google {
-
+    
     /**
-     * Check if Google Calendar integration is enabled.
-     *
-     * @return bool Whether Google Calendar integration is enabled.
+     * Google API Client
      */
-    public static function is_enabled() {
-        return (bool) get_option('wp_calendar_google_calendar_integration', 0);
-    }
-
+    private static $client = null;
+    
     /**
-     * Get the Google Calendar ID.
-     *
-     * @return string The Google Calendar ID.
+     * Initialize Google API Client
      */
-    public static function get_calendar_id() {
-        return get_option('wp_calendar_google_calendar_id', '');
-    }
-
-    /**
-     * Get the Google API key.
-     *
-     * @return string The Google API key.
-     */
-    public static function get_api_key() {
-        return get_option('wp_calendar_google_api_key', '');
-    }
-
-    /**
-     * Add an appointment to Google Calendar.
-     *
-     * @param int $appointment_id The appointment ID.
-     * @return bool|string True on success, error message on failure.
-     */
-    public static function add_appointment($appointment_id) {
-        if (!self::is_enabled()) {
+    private static function init_client() {
+        if (self::$client !== null) {
+            return self::$client;
+        }
+        
+        // Prüfen, ob die Integration aktiviert ist
+        if (get_option('wp_calendar_google_calendar_integration') !== 'enabled') {
             return false;
         }
-
-        $api_key = self::get_api_key();
-        $calendar_id = self::get_calendar_id();
-
-        if (empty($api_key) || empty($calendar_id)) {
-            return __('Google Calendar API key or Calendar ID is missing.', 'wp-calendar');
+        
+        // Prüfen, ob die erforderlichen Einstellungen vorhanden sind
+        $client_id = get_option('wp_calendar_google_client_id');
+        $client_secret = get_option('wp_calendar_google_client_secret');
+        
+        if (empty($client_id) || empty($client_secret)) {
+            return false;
         }
-
-        $appointment = WP_Calendar_DB::get_appointment($appointment_id);
-
+        
+        // Google API Client initialisieren
+        require_once plugin_dir_path(dirname(__FILE__)) . 'vendor/autoload.php';
+        
+        $client = new Google_Client();
+        $client->setClientId($client_id);
+        $client->setClientSecret($client_secret);
+        $client->setRedirectUri(admin_url('admin.php?page=wp-calendar-settings&tab=google'));
+        $client->addScope(Google_Service_Calendar::CALENDAR);
+        
+        // Token aus den Optionen laden
+        $access_token = get_option('wp_calendar_google_access_token');
+        if (!empty($access_token)) {
+            $client->setAccessToken($access_token);
+            
+            // Token aktualisieren, wenn es abgelaufen ist
+            if ($client->isAccessTokenExpired()) {
+                $refresh_token = $client->getRefreshToken();
+                if (!empty($refresh_token)) {
+                    $client->fetchAccessTokenWithRefreshToken($refresh_token);
+                    update_option('wp_calendar_google_access_token', $client->getAccessToken());
+                }
+            }
+        }
+        
+        self::$client = $client;
+        return $client;
+    }
+    
+    /**
+     * Sync appointment with Google Calendar
+     */
+    public static function sync_appointment($appointment_id) {
+        $client = self::init_client();
+        if (!$client) {
+            return false;
+        }
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wp_calendar_appointments';
+        
+        // Termindetails abrufen
+        $appointment = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $appointment_id
+        ), ARRAY_A);
+        
         if (!$appointment) {
-            return __('Appointment not found.', 'wp-calendar');
+            return false;
         }
-
+        
+        // Benutzerdetails abrufen
         $user = get_userdata($appointment['user_id']);
-
         if (!$user) {
-            return __('User not found.', 'wp-calendar');
+            return false;
         }
-
-        // Build the event data
-        $start_datetime = $appointment['appointment_date'] . 'T' . $appointment['appointment_time'];
-        $end_datetime = date('Y-m-d\TH:i:s', strtotime($start_datetime) + (get_option('wp_calendar_time_slot_duration', 60) * 60));
-
-        $event = array(
+        
+        // Google Calendar Service initialisieren
+        $service = new Google_Service_Calendar($client);
+        $calendar_id = get_option('wp_calendar_google_calendar_id', 'primary');
+        
+        // Event erstellen oder aktualisieren
+        $event = new Google_Service_Calendar_Event(array(
             'summary' => sprintf(__('Appointment with %s', 'wp-calendar'), $user->display_name),
-            'description' => !empty($appointment['notes']) ? $appointment['notes'] : '',
+            'description' => $appointment['notes'],
             'start' => array(
-                'dateTime' => $start_datetime,
-                'timeZone' => get_option('timezone_string', 'UTC'),
+                'dateTime' => date('c', strtotime($appointment['appointment_date'] . ' ' . $appointment['appointment_time'])),
+                'timeZone' => wp_timezone_string(),
             ),
             'end' => array(
-                'dateTime' => $end_datetime,
-                'timeZone' => get_option('timezone_string', 'UTC'),
+                'dateTime' => date('c', strtotime($appointment['appointment_date'] . ' ' . $appointment['appointment_time']) + (get_option('wp_calendar_time_slot_duration', 60) * 60)),
+                'timeZone' => wp_timezone_string(),
             ),
             'attendees' => array(
-                array('email' => $user->user_email),
+                array('email' => $user->user_email)
             ),
             'reminders' => array(
-                'useDefault' => true,
-            ),
-        );
-
-        // This is a placeholder for the actual Google Calendar API integration
-        // In a real implementation, you would use the Google API Client Library for PHP
-        // to make the API request to create the event
-
-        // For now, we'll just return true to simulate success
-        return true;
-    }
-
-    /**
-     * Update an appointment in Google Calendar.
-     *
-     * @param int $appointment_id The appointment ID.
-     * @return bool|string True on success, error message on failure.
-     */
-    public static function update_appointment($appointment_id) {
-        if (!self::is_enabled()) {
+                'useDefault' => true
+            )
+        ));
+        
+        try {
+            // Prüfen, ob bereits ein Event existiert
+            if (!empty($appointment['google_event_id'])) {
+                // Event aktualisieren
+                $service->events->update($calendar_id, $appointment['google_event_id'], $event);
+            } else {
+                // Neues Event erstellen
+                $created_event = $service->events->insert($calendar_id, $event);
+                
+                // Event-ID speichern
+                $wpdb->update(
+                    $table_name,
+                    array('google_event_id' => $created_event->getId()),
+                    array('id' => $appointment_id),
+                    array('%s'),
+                    array('%d')
+                );
+            }
+            
+            return true;
+        } catch (Exception $e) {
+            error_log('Google Calendar Error: ' . $e->getMessage());
             return false;
         }
-
-        // Similar to add_appointment, but would update an existing event
-        // This is a placeholder for the actual implementation
-
-        return true;
     }
-
+    
     /**
-     * Delete an appointment from Google Calendar.
-     *
-     * @param int $appointment_id The appointment ID.
-     * @return bool|string True on success, error message on failure.
+     * Delete event from Google Calendar
      */
-    public static function delete_appointment($appointment_id) {
-        if (!self::is_enabled()) {
+    public static function delete_event($appointment_id) {
+        $client = self::init_client();
+        if (!$client) {
             return false;
         }
-
-        // This would delete the event from Google Calendar
-        // This is a placeholder for the actual implementation
-
-        return true;
-    }
-
-    /**
-     * Get events from Google Calendar.
-     *
-     * @param string $start_date Start date in Y-m-d format.
-     * @param string $end_date End date in Y-m-d format.
-     * @return array|string Array of events on success, error message on failure.
-     */
-    public static function get_events($start_date, $end_date) {
-        if (!self::is_enabled()) {
-            return array();
+        
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wp_calendar_appointments';
+        
+        // Termindetails abrufen
+        $appointment = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $appointment_id
+        ), ARRAY_A);
+        
+        if (!$appointment || empty($appointment['google_event_id'])) {
+            return false;
         }
-
-        $api_key = self::get_api_key();
-        $calendar_id = self::get_calendar_id();
-
-        if (empty($api_key) || empty($calendar_id)) {
-            return __('Google Calendar API key or Calendar ID is missing.', 'wp-calendar');
+        
+        // Google Calendar Service initialisieren
+        $service = new Google_Service_Calendar($client);
+        $calendar_id = get_option('wp_calendar_google_calendar_id', 'primary');
+        
+        try {
+            // Event löschen
+            $service->events->delete($calendar_id, $appointment['google_event_id']);
+            return true;
+        } catch (Exception $e) {
+            error_log('Google Calendar Error: ' . $e->getMessage());
+            return false;
         }
-
-        // This would fetch events from Google Calendar
-        // This is a placeholder for the actual implementation
-
-        return array();
     }
 }

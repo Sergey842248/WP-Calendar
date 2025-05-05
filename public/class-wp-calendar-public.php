@@ -394,59 +394,70 @@ class WP_Calendar_Public {
 
         if (!is_user_logged_in()) {
             wp_send_json_error(__('You must be logged in to cancel an appointment', 'wp-calendar'));
+            return;
         }
 
-        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        $appointment_id = isset($_POST['appointment_id']) ? intval($_POST['appointment_id']) : 0;
 
-        if ($id <= 0) {
+        if ($appointment_id <= 0) {
             wp_send_json_error(__('Invalid appointment ID', 'wp-calendar'));
+            return;
         }
 
-        // Get the appointment
-        $appointment = WP_Calendar_Appointment::get_appointment($id);
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'wp_calendar_appointments';
 
-        if (!$appointment) {
-            wp_send_json_error(__('Appointment not found', 'wp-calendar'));
-        }
-
-        // Check if this appointment belongs to the current user
-        if ($appointment['user_id'] != get_current_user_id()) {
-            wp_send_json_error(__('You do not have permission to cancel this appointment', 'wp-calendar'));
-        }
-
-        // Check cancellation period
-        $cancellation_period = get_option('wp_calendar_cancellation_period', 24);
-        $appointment_time = strtotime($appointment['appointment_date'] . ' ' . $appointment['appointment_time']);
-        $current_time = current_time('timestamp');
-
-        if (($appointment_time - $current_time) < ($cancellation_period * 3600)) {
-            wp_send_json_error(sprintf(
-                __('Appointments can only be cancelled at least %d hours in advance', 'wp-calendar'),
-                $cancellation_period
-            ));
-        }
-
-        // Update the appointment status to cancelled
-        $result = WP_Calendar_Appointment::save_appointment(array(
-            'id' => $id,
-            'status' => 'cancelled',
+        // Prüfen, ob der Termin existiert und dem Benutzer gehört
+        $appointment = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d AND user_id = %d",
+            $appointment_id,
+            get_current_user_id()
         ));
 
-        if (is_wp_error($result)) {
-            wp_send_json_error($result->get_error_message());
-        } else {
-            // Send cancellation notification
-            WP_Calendar_Notifications::send_cancellation_notification($id);
-
-            // Update Google Calendar if enabled
-            if (WP_Calendar_Google::is_enabled()) {
-                WP_Calendar_Google::delete_appointment($id);
-            }
-
-            wp_send_json_success(array(
-                'message' => __('Your appointment has been cancelled successfully', 'wp-calendar'),
-            ));
+        if (!$appointment) {
+            wp_send_json_error(__('Appointment not found or you do not have permission to cancel it', 'wp-calendar'));
+            return;
         }
+
+        // Prüfen, ob der Termin bereits storniert wurde
+        if ($appointment->status === 'cancelled') {
+            wp_send_json_error(__('This appointment has already been cancelled', 'wp-calendar'));
+            return;
+        }
+
+        // Prüfen, ob die Stornierungsfrist eingehalten wird
+        $cancellation_period = get_option('wp_calendar_cancellation_period', 24);
+        $appointment_datetime = strtotime($appointment->appointment_date . ' ' . $appointment->appointment_time);
+        $hours_until_appointment = ($appointment_datetime - time()) / 3600;
+
+        if ($hours_until_appointment < $cancellation_period && !current_user_can('manage_options')) {
+            wp_send_json_error(sprintf(
+                __('Appointments can only be cancelled %d hours before the scheduled time', 'wp-calendar'),
+                $cancellation_period
+            ));
+            return;
+        }
+
+        // Termin stornieren
+        $result = $wpdb->update(
+            $table_name,
+            array('status' => 'cancelled'),
+            array('id' => $appointment_id),
+            array('%s'),
+            array('%d')
+        );
+
+        if ($result === false) {
+            wp_send_json_error(__('Failed to cancel the appointment', 'wp-calendar'));
+            return;
+        }
+
+        // Google Calendar Event löschen, wenn die Integration aktiviert ist
+        if (get_option('wp_calendar_google_calendar_integration') === 'enabled') {
+            WP_Calendar_Google::delete_event($appointment_id);
+        }
+
+        wp_send_json_success(__('Your appointment has been cancelled successfully', 'wp-calendar'));
     }
 
     /**

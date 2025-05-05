@@ -52,38 +52,39 @@ class WP_Calendar_Admin {
     /**
      * Register the JavaScript for the admin area.
      */
-    // Find the enqueue_scripts method and make sure it looks like this:
-    public function enqueue_scripts() {
-        // Only load on plugin pages
-        $screen = get_current_screen();
-        if (strpos($screen->id, 'wp-calendar') === false) {
+    /**
+     * Enqueue scripts for admin
+     */
+    public function enqueue_scripts($hook) {
+        // Nur auf Plugin-Seiten laden
+        if (strpos($hook, 'wp-calendar') === false) {
             return;
         }
-
+    
+        // jQuery UI und FullCalendar laden
+        wp_enqueue_style('jquery-ui', 'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css');
         wp_enqueue_script('jquery-ui-datepicker');
-        wp_enqueue_script('jquery-ui-dialog');
-        wp_enqueue_script('moment', WP_CALENDAR_PLUGIN_URL . 'admin/js/moment.min.js', array('jquery'), $this->version);
-        wp_enqueue_script('fullcalendar', WP_CALENDAR_PLUGIN_URL . 'admin/js/fullcalendar.min.js', array('jquery', 'moment'), $this->version);
-        wp_enqueue_script($this->plugin_name, WP_CALENDAR_PLUGIN_URL . 'admin/js/wp-calendar-admin.js', array('jquery', 'jquery-ui-datepicker', 'fullcalendar'), $this->version, true);
-
-        wp_localize_script($this->plugin_name, 'wp_calendar_admin', array(
+        
+        // FullCalendar
+        wp_enqueue_style('fullcalendar', plugin_dir_url(__FILE__) . 'css/fullcalendar.min.css');
+        wp_enqueue_script('moment', plugin_dir_url(__FILE__) . 'js/moment.min.js', array(), '2.29.1', true);
+        wp_enqueue_script('fullcalendar', plugin_dir_url(__FILE__) . 'js/fullcalendar.min.js', array('jquery', 'moment'), '3.10.2', true);
+        
+        // Admin-spezifische Styles und Scripts
+        wp_enqueue_style('wp-calendar-admin', plugin_dir_url(__FILE__) . 'css/wp-calendar-admin.css');
+        wp_enqueue_script('wp-calendar-admin', plugin_dir_url(__FILE__) . 'js/wp-calendar-admin.js', array('jquery', 'fullcalendar'), $this->version, true);
+        
+        // Lokalisierungsdaten für JavaScript
+        wp_localize_script('wp-calendar-admin', 'wp_calendar_admin', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('wp_calendar_admin_nonce'),
             'i18n' => array(
-                'confirm_delete' => __('Are you sure you want to delete this appointment?', 'wp-calendar'),
-                'confirm_cancel' => __('Are you sure you want to cancel this appointment?', 'wp-calendar'),
-                'confirm_delete_block' => __('Are you sure you want to delete this blocked time?', 'wp-calendar'),
+                'confirm_delete' => __('Are you sure you want to delete this item?', 'wp-calendar'),
+                'loading' => __('Loading...', 'wp-calendar'),
+                'error' => __('An error occurred.', 'wp-calendar'),
                 'save' => __('Save', 'wp-calendar'),
                 'cancel' => __('Cancel', 'wp-calendar'),
-                'delete' => __('Delete', 'wp-calendar'),
-                'edit' => __('Edit', 'wp-calendar'),
-                'add' => __('Add', 'wp-calendar'),
-                'error' => __('An error occurred. Please try again.', 'wp-calendar'),
-                'success' => __('Operation completed successfully.', 'wp-calendar'),
-                'loading' => __('Loading...', 'wp-calendar'),
-                'no_appointments' => __('No appointments found.', 'wp-calendar'),
-                'no_blocked_times' => __('No blocked times found.', 'wp-calendar'),
-            ),
+            )
         ));
     }
 
