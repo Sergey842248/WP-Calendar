@@ -213,15 +213,15 @@ class WP_Calendar_Public {
      * Register AJAX handlers
      */
     public function register_ajax_handlers() {
-        // Public AJAX handlers (available to logged in and non-logged in users)
+        // Add this line
         add_action('wp_ajax_wp_calendar_get_available_times', array($this, 'get_available_times'));
         add_action('wp_ajax_nopriv_wp_calendar_get_available_times', array($this, 'get_available_times'));
         
-        add_action('wp_ajax_wp_calendar_get_public_events', array($this, 'ajax_get_public_events'));
-        add_action('wp_ajax_nopriv_wp_calendar_get_public_events', array($this, 'ajax_get_public_events'));
-        
         add_action('wp_ajax_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
         add_action('wp_ajax_nopriv_wp_calendar_book_appointment', array($this, 'ajax_book_appointment'));
+        
+        add_action('wp_ajax_wp_calendar_get_public_events', array($this, 'ajax_get_public_events'));
+        add_action('wp_ajax_nopriv_wp_calendar_get_public_events', array($this, 'ajax_get_public_events'));
         
         add_action('wp_ajax_wp_calendar_cancel_appointment', array($this, 'ajax_cancel_appointment'));
         
@@ -241,13 +241,13 @@ class WP_Calendar_Public {
         $start = isset($_POST['start']) ? sanitize_text_field($_POST['start']) : null;
         $end = isset($_POST['end']) ? sanitize_text_field($_POST['end']) : null;
 
-        $events = array();
-
         // Get blocked times
         $blocked_times = WP_Calendar_Appointment::get_blocked_times(array(
             'date_from' => $start,
             'date_to' => $end,
         ));
+
+        $events = array();
 
         // Process blocked times
         foreach ($blocked_times as $blocked) {
@@ -363,27 +363,45 @@ class WP_Calendar_Public {
             return;
         }
 
-        $appointment_data = array(
-            'user_id' => get_current_user_id(),
-            'appointment_date' => $date,
-            'appointment_time' => $time,
-            'notes' => $notes,
-            'status' => 'confirmed'
-        );
-
-        $result = WP_Calendar_Appointment::save_appointment($appointment_data);
-
-        if (is_wp_error($result)) {
-            wp_send_json_error($result->get_error_message());
+        // Check if the time slot is available
+        if (!WP_Calendar_DB::is_time_slot_available($date, $time)) {
+            wp_send_json_error(__('This time slot is no longer available. Please select another time.', 'wp-calendar'));
             return;
         }
 
-        // Send confirmation email
-        if (get_option('wp_calendar_email_notifications', 1)) {
-            WP_Calendar_Notification::send_confirmation_email($result);
+        $user_id = is_user_logged_in() ? get_current_user_id() : 0;
+
+        // Make sure we're using the correct class and method for saving appointments
+        $appointment_data = array(
+            'user_id' => $user_id,
+            'appointment_date' => $date,
+            'appointment_time' => $time,
+            'notes' => $notes,
+            'status' => 'pending',
+        );
+
+        // Use WP_Calendar_DB instead of WP_Calendar_Appointment if that's the correct class
+        $result = WP_Calendar_DB::save_appointment($appointment_data);
+
+        if (!$result) {
+            wp_send_json_error(__('Failed to book appointment. Please try again.', 'wp-calendar'));
+            return;
         }
 
-        wp_send_json_success(__('Your appointment has been booked successfully', 'wp-calendar'));
+        // Send notification if the class exists
+        if (class_exists('WP_Calendar_Notifications')) {
+            WP_Calendar_Notifications::send_booking_notification($result);
+        }
+
+        // Add to Google Calendar if enabled and the class exists
+        if (class_exists('WP_Calendar_Google') && WP_Calendar_Google::is_enabled()) {
+            WP_Calendar_Google::add_appointment($result);
+        }
+
+        wp_send_json_success(array(
+            'id' => $result,
+            'message' => __('Your appointment has been booked successfully', 'wp-calendar'),
+        ));
     }
 
     /**
@@ -394,70 +412,59 @@ class WP_Calendar_Public {
 
         if (!is_user_logged_in()) {
             wp_send_json_error(__('You must be logged in to cancel an appointment', 'wp-calendar'));
-            return;
         }
 
-        $appointment_id = isset($_POST['appointment_id']) ? intval($_POST['appointment_id']) : 0;
+        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
 
-        if ($appointment_id <= 0) {
+        if ($id <= 0) {
             wp_send_json_error(__('Invalid appointment ID', 'wp-calendar'));
-            return;
         }
 
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'wp_calendar_appointments';
-
-        // Prüfen, ob der Termin existiert und dem Benutzer gehört
-        $appointment = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE id = %d AND user_id = %d",
-            $appointment_id,
-            get_current_user_id()
-        ));
+        // Get the appointment
+        $appointment = WP_Calendar_Appointment::get_appointment($id);
 
         if (!$appointment) {
-            wp_send_json_error(__('Appointment not found or you do not have permission to cancel it', 'wp-calendar'));
-            return;
+            wp_send_json_error(__('Appointment not found', 'wp-calendar'));
         }
 
-        // Prüfen, ob der Termin bereits storniert wurde
-        if ($appointment->status === 'cancelled') {
-            wp_send_json_error(__('This appointment has already been cancelled', 'wp-calendar'));
-            return;
+        // Check if this appointment belongs to the current user
+        if ($appointment['user_id'] != get_current_user_id()) {
+            wp_send_json_error(__('You do not have permission to cancel this appointment', 'wp-calendar'));
         }
 
-        // Prüfen, ob die Stornierungsfrist eingehalten wird
+        // Check cancellation period
         $cancellation_period = get_option('wp_calendar_cancellation_period', 24);
-        $appointment_datetime = strtotime($appointment->appointment_date . ' ' . $appointment->appointment_time);
-        $hours_until_appointment = ($appointment_datetime - time()) / 3600;
+        $appointment_time = strtotime($appointment['appointment_date'] . ' ' . $appointment['appointment_time']);
+        $current_time = current_time('timestamp');
 
-        if ($hours_until_appointment < $cancellation_period && !current_user_can('manage_options')) {
+        if (($appointment_time - $current_time) < ($cancellation_period * 3600)) {
             wp_send_json_error(sprintf(
-                __('Appointments can only be cancelled %d hours before the scheduled time', 'wp-calendar'),
+                __('Appointments can only be cancelled at least %d hours in advance', 'wp-calendar'),
                 $cancellation_period
             ));
-            return;
         }
 
-        // Termin stornieren
-        $result = $wpdb->update(
-            $table_name,
-            array('status' => 'cancelled'),
-            array('id' => $appointment_id),
-            array('%s'),
-            array('%d')
-        );
+        // Update the appointment status to cancelled
+        $result = WP_Calendar_Appointment::save_appointment(array(
+            'id' => $id,
+            'status' => 'cancelled',
+        ));
 
-        if ($result === false) {
-            wp_send_json_error(__('Failed to cancel the appointment', 'wp-calendar'));
-            return;
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+        } else {
+            // Send cancellation notification
+            WP_Calendar_Notifications::send_cancellation_notification($id);
+
+            // Update Google Calendar if enabled
+            if (WP_Calendar_Google::is_enabled()) {
+                WP_Calendar_Google::delete_appointment($id);
+            }
+
+            wp_send_json_success(array(
+                'message' => __('Your appointment has been cancelled successfully', 'wp-calendar'),
+            ));
         }
-
-        // Google Calendar Event löschen, wenn die Integration aktiviert ist
-        if (get_option('wp_calendar_google_calendar_integration') === 'enabled') {
-            WP_Calendar_Google::delete_event($appointment_id);
-        }
-
-        wp_send_json_success(__('Your appointment has been cancelled successfully', 'wp-calendar'));
     }
 
     /**

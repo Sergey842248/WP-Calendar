@@ -71,7 +71,7 @@ class WP_Calendar_Appointment {
     /**
      * Check if a time slot is available
      */
-    public static function is_time_slot_available($date, $time, $exclude_appointment_id = 0) {
+    public static function is_time_slot_available($date, $time) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'wp_calendar_appointments';
         $blocked_table = $wpdb->prefix . 'wp_calendar_blocked_times';
@@ -96,19 +96,11 @@ class WP_Calendar_Appointment {
             return false;
         }
         
-        // Check if there's already an appointment at this time (excluding the current one if editing)
-        $query = "
+        // Check if there's already an appointment at this time
+        $existing_appointment = $wpdb->get_var($wpdb->prepare("
             SELECT COUNT(*) FROM $table_name
             WHERE appointment_date = %s AND appointment_time = %s AND status != 'cancelled'
-        ";
-        $params = array($date, $time);
-        
-        if ($exclude_appointment_id > 0) {
-            $query .= " AND id != %d";
-            $params[] = $exclude_appointment_id;
-        }
-        
-        $existing_appointment = $wpdb->get_var($wpdb->prepare($query, $params));
+        ", $date, $time));
         
         return $existing_appointment == 0;
     }
@@ -116,73 +108,99 @@ class WP_Calendar_Appointment {
     /**
      * Create or update an appointment
      */
-    /**
-     * Save appointment
-     */
     public static function save_appointment($data) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'wp_calendar_appointments';
         
+        $defaults = array(
+            'id' => 0,
+            'user_id' => get_current_user_id(),
+            'appointment_date' => '',
+            'appointment_time' => '',
+            'status' => 'confirmed',
+            'notes' => '',
+            'google_event_id' => '',
+        );
+        
+        $data = wp_parse_args($data, $defaults);
+        
         // Validate data
-        if (empty($data['user_id']) || empty($data['appointment_date']) || empty($data['appointment_time'])) {
-            return new WP_Error('missing_data', __('Required appointment data is missing', 'wp-calendar'));
+        if (empty($data['appointment_date']) || empty($data['appointment_time'])) {
+            return new WP_Error('missing_data', __('Date and time are required', 'wp-calendar'));
         }
         
-        // Check if time slot is available
-        if (!self::is_time_slot_available($data['appointment_date'], $data['appointment_time'], isset($data['id']) ? $data['id'] : 0)) {
-            return new WP_Error('slot_unavailable', __('This time slot is no longer available', 'wp-calendar'));
+        // Check if user can modify this appointment
+        if ($data['id'] > 0) {
+            $appointment = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $table_name WHERE id = %d",
+                $data['id']
+            ));
+            
+            if (!$appointment) {
+                return new WP_Error('not_found', __('Appointment not found', 'wp-calendar'));
+            }
+            
+            // Check if user owns this appointment or is admin
+            if (!current_user_can('manage_options') && $appointment->user_id != get_current_user_id()) {
+                return new WP_Error('permission_denied', __('You do not have permission to modify this appointment', 'wp-calendar'));
+            }
+            
+            // Check cancellation period if changing date/time
+            if ($appointment->appointment_date != $data['appointment_date'] || $appointment->appointment_time != $data['appointment_time']) {
+                $cancellation_period = get_option('wp_calendar_cancellation_period', 24);
+                $appointment_datetime = strtotime($appointment->appointment_date . ' ' . $appointment->appointment_time);
+                $hours_until_appointment = ($appointment_datetime - time()) / 3600;
+                
+                if ($hours_until_appointment < $cancellation_period && !current_user_can('manage_options')) {
+                    return new WP_Error('too_late', sprintf(
+                        __('Appointments can only be modified %d hours before the scheduled time', 'wp-calendar'),
+                        $cancellation_period
+                    ));
+                }
+            }
         }
         
-        $appointment_data = array(
+        // Check if the time slot is available (only for new appointments or when changing date/time)
+        if ($data['id'] == 0 || ($appointment && ($appointment->appointment_date != $data['appointment_date'] || $appointment->appointment_time != $data['appointment_time']))) {
+            if (!self::is_time_slot_available($data['appointment_date'], $data['appointment_time'])) {
+                return new WP_Error('slot_unavailable', __('This time slot is not available', 'wp-calendar'));
+            }
+        }
+        
+        // Prepare data for database
+        $db_data = array(
             'user_id' => $data['user_id'],
             'appointment_date' => $data['appointment_date'],
             'appointment_time' => $data['appointment_time'],
-            'notes' => isset($data['notes']) ? $data['notes'] : '',
-            'status' => isset($data['status']) ? $data['status'] : 'confirmed',
-            'updated_at' => current_time('mysql')
+            'status' => $data['status'],
+            'notes' => $data['notes'],
+            'google_event_id' => $data['google_event_id'],
         );
         
-        // Update existing appointment
-        if (isset($data['id']) && $data['id'] > 0) {
-            $result = $wpdb->update(
+        $db_format = array('%d', '%s', '%s', '%s', '%s', '%s');
+        
+        // Insert or update
+        if ($data['id'] > 0) {
+            $wpdb->update(
                 $table_name,
-                $appointment_data,
+                $db_data,
                 array('id' => $data['id']),
-                array('%d', '%s', '%s', '%s', '%s', '%s'),
+                $db_format,
                 array('%d')
             );
-            
-            if ($result === false) {
-                return new WP_Error('db_error', __('Failed to update appointment', 'wp-calendar'));
-            }
-            
             $appointment_id = $data['id'];
-        } 
-        // Insert new appointment
-        else {
-            $appointment_data['created_at'] = current_time('mysql');
-            
-            $result = $wpdb->insert(
+        } else {
+            $wpdb->insert(
                 $table_name,
-                $appointment_data,
-                array('%d', '%s', '%s', '%s', '%s', '%s', '%s')
+                $db_data,
+                $db_format
             );
-            
-            if ($result === false) {
-                return new WP_Error('db_error', __('Failed to create appointment', 'wp-calendar'));
-            }
-            
             $appointment_id = $wpdb->insert_id;
         }
         
-        // Synchronize with Google Calendar if integration is enabled
-        if (get_option('wp_calendar_google_calendar_integration') === 'enabled' && class_exists('WP_Calendar_Google')) {
-            try {
-                WP_Calendar_Google::sync_appointment($appointment_id);
-            } catch (Exception $e) {
-                // Log error but don't fail the appointment creation
-                error_log('Google Calendar sync error: ' . $e->getMessage());
-            }
+        // Sync with Google Calendar if enabled
+        if (get_option('wp_calendar_google_calendar_integration') === 'enabled') {
+            WP_Calendar_Google::sync_appointment($appointment_id);
         }
         
         return $appointment_id;
