@@ -209,3 +209,26 @@ $active_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'general
         ?>
     </form>
 </div>
+
+// Fügen Sie diesen Code am Anfang der Datei ein, nach der Überprüfung von ABSPATH
+if (isset($_POST['wp_calendar_save_settings'])) {
+    // Speichern Sie alle Einstellungen, unabhängig vom aktiven Tab
+    
+    // Allgemeine Einstellungen
+    if (isset($_POST['wp_calendar_business_hours_start'])) {
+        update_option('wp_calendar_business_hours_start', sanitize_text_field($_POST['wp_calendar_business_hours_start']));
+    }
+    
+    if (isset($_POST['wp_calendar_business_hours_end'])) {
+        update_option('wp_calendar_business_hours_end', sanitize_text_field($_POST['wp_calendar_business_hours_end']));
+    }
+    
+    if (isset($_POST['wp_calendar_time_slot_duration'])) {
+        update_option('wp_calendar_time_slot_duration', intval($_POST['wp_calendar_time_slot_duration']));
+    }
+    
+    // Weitere Einstellungen hier hinzufügen...
+    
+    // Erfolgsmeldung anzeigen
+    add_settings_error('wp_calendar_settings', 'settings_updated', __('Settings saved.', 'wp-calendar'), 'updated');
+}

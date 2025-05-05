@@ -305,13 +305,18 @@
     }
 
     // Function to get available times for a selected date
-    // Diese Funktion muss ergänzt oder korrigiert werden
+    // Suchen Sie nach der Funktion, die die verfügbaren Zeiten abruft
     function getAvailableTimes(date) {
         var timeSelect = $('#appointment_time');
-    
+        
         // Zeige Ladetext
         timeSelect.empty().append('<option value="">' + wp_calendar_public.i18n.loading + '</option>').prop('disabled', true);
-    
+        
+        // Fügen Sie Debugging-Informationen hinzu
+        console.log('Requesting available times for date:', date);
+        console.log('AJAX URL:', wp_calendar_public.ajax_url);
+        console.log('Nonce:', wp_calendar_public.nonce);
+        
         $.ajax({
             url: wp_calendar_public.ajax_url,
             type: 'POST',
@@ -321,9 +326,11 @@
                 date: date
             },
             success: function(response) {
+                console.log('AJAX Response:', response);
+                
                 timeSelect.empty();
-    
-                if (response.success && response.data.length > 0) {
+                
+                if (response.success && response.data && response.data.length > 0) {
                     // Füge die verfügbaren Zeiten hinzu
                     $.each(response.data, function(index, time) {
                         timeSelect.append('<option value="' + time.value + '">' + time.label + '</option>');
@@ -335,7 +342,8 @@
                     timeSelect.prop('disabled', true);
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('AJAX Error:', xhr.responseText);
                 timeSelect.empty().append('<option value="">' + wp_calendar_public.i18n.booking_error + '</option>');
                 timeSelect.prop('disabled', true);
             }
