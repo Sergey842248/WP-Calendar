@@ -2,6 +2,11 @@
     'use strict';
 
     $(document).ready(function() {
+        // Initialize calendar
+        if ($('#wp-calendar-admin').length) {
+            initializeCalendar();
+        }
+
         // Initialize datepickers
         $('.wp-calendar-datepicker').datepicker({
             dateFormat: 'yy-mm-dd',
@@ -44,6 +49,88 @@
         });
     });
 
+    function initializeCalendar() {
+        $('#wp-calendar-admin').fullCalendar({
+            header: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'month,agendaWeek,agendaDay'
+            },
+            editable: true,
+            eventLimit: true,
+            events: function(start, end, timezone, callback) {
+                $.ajax({
+                    url: wp_calendar_admin.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'wp_calendar_get_appointments',
+                        nonce: wp_calendar_admin.nonce,
+                        start: start.format('YYYY-MM-DD'),
+                        end: end.format('YYYY-MM-DD')
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            callback(response.data);
+                        } else {
+                            alert(response.data || wp_calendar_admin.i18n.error);
+                        }
+                    },
+                    error: function() {
+                        alert(wp_calendar_admin.i18n.error);
+                    }
+                });
+            },
+            eventClick: function(calEvent, jsEvent, view) {
+                // Handle event click
+                if (calEvent.id.toString().startsWith('blocked_')) {
+                    // Blocked time event
+                    var blockedId = calEvent.id.toString().replace('blocked_', '');
+                    window.location.href = 'admin.php?page=wp-calendar-blocked&action=edit&id=' + blockedId;
+                } else {
+                    // Regular appointment
+                    window.location.href = 'admin.php?page=wp-calendar-appointments&action=edit&id=' + calEvent.id;
+                }
+            },
+            dayClick: function(date, jsEvent, view) {
+                // Open new appointment form for the clicked date
+                window.location.href = 'admin.php?page=wp-calendar-appointments&action=add&date=' + date.format('YYYY-MM-DD');
+            },
+            eventDrop: function(event, delta, revertFunc) {
+                // Handle event drag & drop
+                if (event.id.toString().startsWith('blocked_')) {
+                    // Can't move blocked times
+                    revertFunc();
+                    return;
+                }
+
+                // Update appointment date/time
+                $.ajax({
+                    url: wp_calendar_admin.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'wp_calendar_save_appointment',
+                        nonce: wp_calendar_admin.nonce,
+                        id: event.id,
+                        user_id: event.user_id,
+                        date: event.start.format('YYYY-MM-DD'),
+                        time: event.start.format('HH:mm:ss'),
+                        status: event.status,
+                        notes: event.notes
+                    },
+                    success: function(response) {
+                        if (!response.success) {
+                            revertFunc();
+                            alert(response.data || wp_calendar_admin.i18n.error);
+                        }
+                    },
+                    error: function() {
+                        revertFunc();
+                        alert(wp_calendar_admin.i18n.error);
+                    }
+                });
+            }
+        });
+    }
 
     function saveAppointment() {
         var form = $('#wp-calendar-appointment-form');

@@ -29,7 +29,7 @@ if (!defined('ABSPATH')) {
         </div>
         
         <div class="wp-calendar-main">
-            <!-- Calendar removed as per user request -->
+            <div id="wp-calendar-admin-calendar"></div>
         </div>
     </div>
 </div>
