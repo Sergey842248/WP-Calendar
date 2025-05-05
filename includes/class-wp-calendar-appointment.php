@@ -72,6 +72,10 @@ class WP_Calendar_Appointment {
      * Check if a time slot is available
      */
     public static function is_time_slot_available($date, $time) {
+        // Immer verfügbar machen
+        return true;
+        
+        /* Original Code wird nicht mehr ausgeführt
         global $wpdb;
         $table_name = $wpdb->prefix . 'wp_calendar_appointments';
         $blocked_table = $wpdb->prefix . 'wp_calendar_blocked_times';
@@ -103,6 +107,7 @@ class WP_Calendar_Appointment {
         ", $date, $time));
         
         return $existing_appointment == 0;
+        */
     }
     
     /**
